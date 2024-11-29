@@ -259,12 +259,164 @@
 
 
 //esp 32 data with ai control
+// import React, { useState, useEffect, useRef } from "react";
+// import * as mobilenet from '@tensorflow-models/mobilenet';
+// import '@tensorflow/tfjs'; // Import TensorFlow.js
+
+// const App = () => {
+//   // State for sensor data received via WebSocket
+//   const [data, setData] = useState({
+//     soil_moisture: null,
+//     water_level: null,
+//     light: null,
+//     humidity: null,
+//   });
+
+//   // State for WebSocket connection status
+//   const [connected, setConnected] = useState(false);
+
+//   // State for image classification predictions
+//   const [predictions, setPredictions] = useState([]);
+  
+//   // Refs for image and canvas elements
+//   const imgRef = useRef(null); // Reference to the img DOM element
+//   const canvasRef = useRef(null); // Reference to a canvas to grab image frames
+//   const modelRef = useRef(null); // To store the loaded MobileNet model
+//   const lastImageTimeRef = useRef(Date.now()); // To track the time of the last image classification
+
+//   // WebSocket connection setup
+//   useEffect(() => {
+//     console.log("Connecting to WebSocket...");
+//     const socket = new WebSocket("ws://172.20.10.5:81");
+
+//     socket.onopen = () => {
+//       console.log("Connected to WebSocket server");
+//       setConnected(true);
+//     };
+
+//     socket.onmessage = (event) => {
+//       const receivedData = JSON.parse(event.data);
+//       console.log("Received:", receivedData);
+//       setData((prevData) => ({ ...prevData, ...receivedData }));
+//     };
+
+//     socket.onerror = (error) => {
+//       console.error("WebSocket error:", error);
+//     };
+
+//     socket.onclose = () => {
+//       console.log("Disconnected from WebSocket server");
+//       setConnected(false);
+//     };
+
+//     return () => {
+//       socket.close();
+//     };
+//   }, []);
+
+//   // Control motor function via WebSocket
+//   const controlMotor = (command) => {
+//     const socket = new WebSocket("ws://172.20.10.5:81");
+//     socket.onopen = () => {
+//       socket.send(command);
+//       socket.close();
+//     };
+//   };
+
+//   // Load MobileNet model and start image classification
+//   useEffect(() => {
+//     if (imgRef.current && canvasRef.current) {
+//       mobilenet.load().then((model) => {
+//         modelRef.current = model;
+//         console.log("MobileNet model loaded");
+
+//         const analyzeFrame = async () => {
+//           if (imgRef.current.complete) {
+//             const ctx = canvasRef.current.getContext('2d');
+//             ctx.drawImage(imgRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
+
+//             // Only classify every 1 second
+//             const currentTime = Date.now();
+//             if (currentTime - lastImageTimeRef.current > 1000) {
+//               lastImageTimeRef.current = currentTime; // Update the last classification time
+//               const imageData = ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
+//               const newPredictions = await modelRef.current.classify(imageData);
+//               setPredictions(newPredictions);
+//             }
+//           }
+//           requestAnimationFrame(analyzeFrame); // Continue analyzing frames
+//         };
+
+//         analyzeFrame(); // Start analyzing frames
+//       });
+//     }
+//   }, []);
+
+//   return (
+//     <div className="App">
+//       <h1>ESP32 Real-Time Monitoring and MobileNet Classification</h1>
+
+//       {/* WebSocket Connection Status */}
+//       {connected ? (
+//         <div>
+//           <h2>Connected to WebSocket</h2>
+//           <p>Soil Moisture: {data.soil_moisture ?? "Loading..."}</p>
+//           <p>Water Level: {data.water_level ?? "Loading..."}%</p>
+//           <p>Light: {data.light === 1 ? "Bright" : "Dark"}</p>
+//           <p>Humidity: {data.humidity ?? "Loading..."}%</p>
+//           <button onClick={() => controlMotor("MOTOR_ON")}>Turn Motor ON</button>
+//         </div>
+//       ) : (
+//         <p>Connecting to WebSocket...</p>
+//       )}
+
+//       {/* MJPEG Stream from ESP32 Camera */}
+//       <img
+//         ref={imgRef}
+//         src="http://172.20.10.8:81/stream" // MJPEG stream URL
+//         alt="Live stream"
+//         width="640"
+//         height="480"
+//         style={{
+//           border: '2px solid #ccc',
+//           borderRadius: '8px',
+//         }}
+//         crossOrigin="anonymous" // Enable CORS
+//         onLoad={() => console.log('Image loaded successfully')}
+//         onError={() => console.error('Failed to load image')}
+//       />
+
+//       {/* Canvas to grab image data from MJPEG stream for classification */}
+//       <canvas
+//         ref={canvasRef}
+//         width="640"
+//         height="480"
+//         style={{ display: 'none' }} // Hide the canvas element
+//       ></canvas>
+
+//       {/* Display Image Classification Results */}
+//       <div>
+//         <h2>Predictions:</h2>
+//         <ul>
+//           {predictions.map((prediction, idx) => (
+//             <li key={idx}>
+//               {prediction.className} - {Math.round(prediction.probability * 100)}%
+//             </li>
+//           ))}
+//         </ul>
+//       </div>
+//     </div>
+//   );
+// };
+
+// export default App;
+
+
+
 import React, { useState, useEffect, useRef } from "react";
-import * as mobilenet from '@tensorflow-models/mobilenet';
-import '@tensorflow/tfjs'; // Import TensorFlow.js
+import Pusher from 'pusher-js';
 
 const App = () => {
-  // State for sensor data received via WebSocket
   const [data, setData] = useState({
     soil_moisture: null,
     water_level: null,
@@ -272,82 +424,61 @@ const App = () => {
     humidity: null,
   });
 
-  // State for WebSocket connection status
   const [connected, setConnected] = useState(false);
 
-  // State for image classification predictions
   const [predictions, setPredictions] = useState([]);
-  
-  // Refs for image and canvas elements
-  const imgRef = useRef(null); // Reference to the img DOM element
-  const canvasRef = useRef(null); // Reference to a canvas to grab image frames
-  const modelRef = useRef(null); // To store the loaded MobileNet model
-  const lastImageTimeRef = useRef(Date.now()); // To track the time of the last image classification
 
-  // WebSocket connection setup
+  const imgRef = useRef(null);
+  const canvasRef = useRef(null);
+  const modelRef = useRef(null);
+  const lastImageTimeRef = useRef(Date.now());
+
   useEffect(() => {
-    console.log("Connecting to WebSocket...");
-    const socket = new WebSocket("ws://172.20.10.5:81");
+    // Initialize Pusher with your credentials
+    const pusher = new Pusher('YOUR_PUSHER_APP_KEY', {
+      cluster: 'YOUR_PUSHER_APP_CLUSTER',
+    });
 
-    socket.onopen = () => {
-      console.log("Connected to WebSocket server");
-      setConnected(true);
-    };
+    // Subscribe to your channel
+    const channel = pusher.subscribe('sensor-channel');
+    
+    // Listen for sensor data updates
+    channel.bind('sensor-update', (data) => {
+      console.log("Received data from Pusher:", data);
+      setData(data);
+    });
 
-    socket.onmessage = (event) => {
-      const receivedData = JSON.parse(event.data);
-      console.log("Received:", receivedData);
-      setData((prevData) => ({ ...prevData, ...receivedData }));
-    };
-
-    socket.onerror = (error) => {
-      console.error("WebSocket error:", error);
-    };
-
-    socket.onclose = () => {
-      console.log("Disconnected from WebSocket server");
-      setConnected(false);
-    };
-
+    // Clean up when the component is unmounted
     return () => {
-      socket.close();
+      pusher.unsubscribe('sensor-channel');
     };
   }, []);
 
-  // Control motor function via WebSocket
-  const controlMotor = (command) => {
-    const socket = new WebSocket("ws://172.20.10.5:81");
-    socket.onopen = () => {
-      socket.send(command);
-      socket.close();
-    };
-  };
-
-  // Load MobileNet model and start image classification
   useEffect(() => {
     if (imgRef.current && canvasRef.current) {
-      mobilenet.load().then((model) => {
-        modelRef.current = model;
-        console.log("MobileNet model loaded");
+      import('@tensorflow-models/mobilenet').then(mobilenet => {
+        mobilenet.load().then((model) => {
+          modelRef.current = model;
+          console.log("MobileNet model loaded");
 
-        const analyzeFrame = async () => {
-          if (imgRef.current.complete) {
-            const ctx = canvasRef.current.getContext('2d');
-            ctx.drawImage(imgRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
+          const analyzeFrame = async () => {
+            if (imgRef.current.complete) {
+              const ctx = canvasRef.current.getContext('2d');
+              ctx.drawImage(imgRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
 
-            // Only classify every 1 second
-            const currentTime = Date.now();
-            if (currentTime - lastImageTimeRef.current > 1000) {
-              lastImageTimeRef.current = currentTime; // Update the last classification time
-              const imageData = ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
-              const newPredictions = await modelRef.current.classify(imageData);
-              setPredictions(newPredictions);
+              const currentTime = Date.now();
+              if (currentTime - lastImageTimeRef.current > 1000) {
+                lastImageTimeRef.current = currentTime;
+                const imageData = ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
+                const newPredictions = await modelRef.current.classify(imageData);
+                setPredictions(newPredictions);
+              }
             }
-          }
-          requestAnimationFrame(analyzeFrame); // Continue analyzing frames
-        };
+            requestAnimationFrame(analyzeFrame);
+          };
 
-        analyzeFrame(); // Start analyzing frames
+          analyzeFrame();
+        });
       });
     }
   }, []);
@@ -359,7 +490,7 @@ const App = () => {
       {/* WebSocket Connection Status */}
       {connected ? (
         <div>
-          <h2>Connected to WebSocket</h2>
+          <h2>Connected to Pusher</h2>
           <p>Soil Moisture: {data.soil_moisture ?? "Loading..."}</p>
           <p>Water Level: {data.water_level ?? "Loading..."}%</p>
           <p>Light: {data.light === 1 ? "Bright" : "Dark"}</p>
@@ -373,7 +504,7 @@ const App = () => {
       {/* MJPEG Stream from ESP32 Camera */}
       <img
         ref={imgRef}
-        src="http://172.20.10.8:81/stream" // MJPEG stream URL
+        src="http://172.20.10.8:81/stream"
         alt="Live stream"
         width="640"
         height="480"
@@ -381,7 +512,7 @@ const App = () => {
           border: '2px solid #ccc',
           borderRadius: '8px',
         }}
-        crossOrigin="anonymous" // Enable CORS
+        crossOrigin="anonymous"
         onLoad={() => console.log('Image loaded successfully')}
         onError={() => console.error('Failed to load image')}
       />
@@ -391,7 +522,7 @@ const App = () => {
         ref={canvasRef}
         width="640"
         height="480"
-        style={{ display: 'none' }} // Hide the canvas element
+        style={{ display: 'none' }}
       ></canvas>
 
       {/* Display Image Classification Results */}
