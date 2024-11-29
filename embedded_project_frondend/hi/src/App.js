@@ -454,34 +454,34 @@ const App = () => {
     };
   }, []);
 
-  useEffect(() => {
-    if (imgRef.current && canvasRef.current) {
-      import('@tensorflow-models/mobilenet').then(mobilenet => {
-        mobilenet.load().then((model) => {
-          modelRef.current = model;
-          console.log("MobileNet model loaded");
+  // useEffect(() => {
+  //   if (imgRef.current && canvasRef.current) {
+  //     import('@tensorflow-models/mobilenet').then(mobilenet => {
+  //       mobilenet.load().then((model) => {
+  //         modelRef.current = model;
+  //         console.log("MobileNet model loaded");
 
-          const analyzeFrame = async () => {
-            if (imgRef.current.complete) {
-              const ctx = canvasRef.current.getContext('2d');
-              ctx.drawImage(imgRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
+  //         const analyzeFrame = async () => {
+  //           if (imgRef.current.complete) {
+  //             const ctx = canvasRef.current.getContext('2d');
+  //             ctx.drawImage(imgRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
 
-              const currentTime = Date.now();
-              if (currentTime - lastImageTimeRef.current > 1000) {
-                lastImageTimeRef.current = currentTime;
-                const imageData = ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
-                const newPredictions = await modelRef.current.classify(imageData);
-                setPredictions(newPredictions);
-              }
-            }
-            requestAnimationFrame(analyzeFrame);
-          };
+  //             const currentTime = Date.now();
+  //             if (currentTime - lastImageTimeRef.current > 1000) {
+  //               lastImageTimeRef.current = currentTime;
+  //               const imageData = ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
+  //               const newPredictions = await modelRef.current.classify(imageData);
+  //               setPredictions(newPredictions);
+  //             }
+  //           }
+  //           requestAnimationFrame(analyzeFrame);
+  //         };
 
-          analyzeFrame();
-        });
-      });
-    }
-  }, []);
+  //         analyzeFrame();
+  //       });
+  //     });
+  //   }
+  // }, []);
 
   return (
     <div className="App">
