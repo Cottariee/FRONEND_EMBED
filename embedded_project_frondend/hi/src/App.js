@@ -413,129 +413,16 @@
 
 
 
-import React, { useState, useEffect, useRef } from "react";
-import Pusher from 'pusher-js';
+import React from "react";
+
 
 const App = () => {
-  const [data, setData] = useState({
-    soil_moisture: null,
-    water_level: null,
-    light: null,
-    humidity: null,
-  });
 
-  const [connected, setConnected] = useState(false);
 
-  const [predictions, setPredictions] = useState([]);
-
-  const imgRef = useRef(null);
-  const canvasRef = useRef(null);
-  const modelRef = useRef(null);
-  const lastImageTimeRef = useRef(Date.now());
-
-  useEffect(() => {
-    // Initialize Pusher with your credentials
-    const pusher = new Pusher('YOUR_PUSHER_APP_KEY', {
-      cluster: 'YOUR_PUSHER_APP_CLUSTER',
-    });
-
-    // Subscribe to your channel
-    const channel = pusher.subscribe('sensor-channel');
-    
-    // Listen for sensor data updates
-    channel.bind('sensor-update', (data) => {
-      console.log("Received data from Pusher:", data);
-      setData(data);
-    });
-
-    // Clean up when the component is unmounted
-    return () => {
-      pusher.unsubscribe('sensor-channel');
-    };
-  }, []);
-
-  // useEffect(() => {
-  //   if (imgRef.current && canvasRef.current) {
-  //     import('@tensorflow-models/mobilenet').then(mobilenet => {
-  //       mobilenet.load().then((model) => {
-  //         modelRef.current = model;
-  //         console.log("MobileNet model loaded");
-
-  //         const analyzeFrame = async () => {
-  //           if (imgRef.current.complete) {
-  //             const ctx = canvasRef.current.getContext('2d');
-  //             ctx.drawImage(imgRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
-
-  //             const currentTime = Date.now();
-  //             if (currentTime - lastImageTimeRef.current > 1000) {
-  //               lastImageTimeRef.current = currentTime;
-  //               const imageData = ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
-  //               const newPredictions = await modelRef.current.classify(imageData);
-  //               setPredictions(newPredictions);
-  //             }
-  //           }
-  //           requestAnimationFrame(analyzeFrame);
-  //         };
-
-  //         analyzeFrame();
-  //       });
-  //     });
-  //   }
-  // }, []);
 
   return (
     <div className="App">
       <h1>ESP32 Real-Time Monitoring and MobileNet Classification</h1>
-
-      {/* WebSocket Connection Status */}
-      {connected ? (
-        <div>
-          <h2>Connected to Pusher</h2>
-          <p>Soil Moisture: {data.soil_moisture ?? "Loading..."}</p>
-          <p>Water Level: {data.water_level ?? "Loading..."}%</p>
-          <p>Light: {data.light === 1 ? "Bright" : "Dark"}</p>
-          <p>Humidity: {data.humidity ?? "Loading..."}%</p>
-          <button onClick={() => controlMotor("MOTOR_ON")}>Turn Motor ON</button>
-        </div>
-      ) : (
-        <p>Connecting to WebSocket...</p>
-      )}
-
-      {/* MJPEG Stream from ESP32 Camera */}
-      <img
-        ref={imgRef}
-        src="http://172.20.10.8:81/stream"
-        alt="Live stream"
-        width="640"
-        height="480"
-        style={{
-          border: '2px solid #ccc',
-          borderRadius: '8px',
-        }}
-        crossOrigin="anonymous"
-        onLoad={() => console.log('Image loaded successfully')}
-        onError={() => console.error('Failed to load image')}
-      />
-
-      {/* Canvas to grab image data from MJPEG stream for classification */}
-      <canvas
-        ref={canvasRef}
-        width="640"
-        height="480"
-        style={{ display: 'none' }}
-      ></canvas>
-
-      {/* Display Image Classification Results */}
-      <div>
-        <h2>Predictions:</h2>
-        <ul>
-          {predictions.map((prediction, idx) => (
-            <li key={idx}>
-              {prediction.className} - {Math.round(prediction.probability * 100)}%
-            </li>
-          ))}
-        </ul>
-      </div>
     </div>
   );
 };
