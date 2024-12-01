@@ -256,15 +256,170 @@
 
 // export default App;
 
-
+//*----------------------*
 
 //esp 32 data with ai control
+// import React, { useState, useEffect, useRef } from "react";
+// import * as mobilenet from '@tensorflow-models/mobilenet';
+// import '@tensorflow/tfjs'; // Import TensorFlow.js
+
+// const App = () => {
+//   // State for sensor data received via WebSocket
+//   const [data, setData] = useState({
+//     soil_moisture: null,
+//     water_level: null,
+//     light: null,
+//     humidity: null,
+//   });
+
+//   // State for WebSocket connection status
+//   const [connected, setConnected] = useState(false);
+
+//   // State for image classification predictions
+//   const [predictions, setPredictions] = useState([]);
+  
+  
+
+//   // Refs for image and canvas elements
+//   const imgRef = useRef(null); // Reference to the img DOM element
+//   const canvasRef = useRef(null); // Reference to a canvas to grab image frames
+//   const modelRef = useRef(null); // To store the loaded MobileNet model
+//   const lastImageTimeRef = useRef(Date.now()); // To track the time of the last image classification
+
+//   // WebSocket connection setup
+//   useEffect(() => {
+//     console.log("Connecting to WebSocket...");
+//     const socket = new WebSocket("ws://172.20.10.5:81");
+
+//     socket.onopen = () => {
+//       console.log("Connected to WebSocket server");
+//       setConnected(true);
+//     };
+
+//     socket.onmessage = (event) => {
+//       const receivedData = JSON.parse(event.data);
+//       console.log("Received:", receivedData);
+//       setData((prevData) => ({ ...prevData, ...receivedData }));
+//     };
+
+//     socket.onerror = (error) => {
+//       console.error("WebSocket error:", error);
+//     };
+
+//     socket.onclose = () => {
+//       console.log("Disconnected from WebSocket server");
+//       setConnected(false);
+//     };
+
+//     return () => {
+//       socket.close();
+//     };
+//   }, []);
+
+//   // Control motor function via WebSocket
+//   const controlMotor = (command) => {
+//     const socket = new WebSocket("ws://172.20.10.5:81");
+//     socket.onopen = () => {
+//       socket.send(command);
+//       socket.close();
+//     };
+//   };
+
+//   // Load MobileNet model and start image classification
+//   useEffect(() => {
+//     if (imgRef.current && canvasRef.current) {
+//       mobilenet.load().then((model) => {
+//         modelRef.current = model;
+//         console.log("MobileNet model loaded");
+
+//         const analyzeFrame = async () => {
+//           if (imgRef.current.complete) {
+//             const ctx = canvasRef.current.getContext('2d');
+//             ctx.drawImage(imgRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
+
+//             // Only classify every 1 second
+//             const currentTime = Date.now();
+//             if (currentTime - lastImageTimeRef.current > 1000) {
+//               lastImageTimeRef.current = currentTime; // Update the last classification time
+//               const imageData = ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
+//               const newPredictions = await modelRef.current.classify(imageData);
+//               setPredictions(newPredictions);
+//             }
+//           }
+//           requestAnimationFrame(analyzeFrame); // Continue analyzing frames
+//         };
+
+//         analyzeFrame(); // Start analyzing frames
+//       });
+//     }
+//   }, []);
+
+//   return (
+//     <div className="App">
+//       <h1>ESP32 Real-Time Monitoring and MobileNet Classification</h1>
+
+//       {/* WebSocket Connection Status */}
+//       {connected ? (
+//         <div>
+//           <h2>Connected to WebSocket</h2>
+//           <p>Soil Moisture: {data.soil_moisture ?? "Loading..."}</p>
+//           <p>Water Level: {data.water_level ?? "Loading..."}%</p>
+//           <p>Light: {data.light === 1 ? "Bright" : "Dark"}</p>
+//           <p>Humidity: {data.humidity ?? "Loading..."}%</p>
+//           <button onClick={() => controlMotor("MOTOR_ON")}>Turn Motor ON</button>
+//         </div>
+//       ) : (
+//         <p>Connecting to WebSocket...</p>
+//       )}
+
+//       {/* MJPEG Stream from ESP32 Camera */}
+//       <img
+//         ref={imgRef}
+//         src="http://172.20.10.8:81/stream" // MJPEG stream URL
+//         alt="Live stream"
+//         width="640"
+//         height="480"
+//         style={{
+//           border: '2px solid #ccc',
+//           borderRadius: '8px',
+//         }}
+//         crossOrigin="anonymous" // Enable CORS
+//         onLoad={() => console.log('Image loaded successfully')}
+//         onError={() => console.error('Failed to load image')}
+//       />
+
+//       {/* Canvas to grab image data from MJPEG stream for classification */}
+//       <canvas
+//         ref={canvasRef}
+//         width="640"
+//         height="480"
+//         style={{ display: 'none' }} // Hide the canvas element
+//       ></canvas>
+
+//       {/* Display Image Classification Results */}
+//       <div>
+//         <h2>Predictions:</h2>
+//         <ul>
+//           {predictions.map((prediction, idx) => (
+//             <li key={idx}>
+//               {prediction.className} - {Math.round(prediction.probability * 100)}%
+//             </li>
+//           ))}
+//         </ul>
+//       </div>
+//     </div>
+//   );
+// };
+
+// export default App;
+
+//*--------------------*
+
 import React, { useState, useEffect, useRef } from "react";
-import * as mobilenet from '@tensorflow-models/mobilenet';
-import '@tensorflow/tfjs'; // Import TensorFlow.js
+import * as mobilenet from "@tensorflow-models/mobilenet";
+import "@tensorflow/tfjs";
 
 const App = () => {
-  // State for sensor data received via WebSocket
   const [data, setData] = useState({
     soil_moisture: null,
     water_level: null,
@@ -273,16 +428,19 @@ const App = () => {
   });
 
   // State for WebSocket connection status
-  const [connected, setConnected] = useState(false);
+  const [connected, setConnected] = useState(false); //เปลี่ยนเป็น false
 
   // State for image classification predictions
-  const [predictions, setPredictions] = useState([]);
-  
+  const [predictions, setPredictions] = useState([
+    { className: "Worm", probability: 0.9 },
+    { className: "Latae", probability: 0.75 },
+  ]); //ใส่ค่าไว้อย่าลืมเอาออกตอนใช้
+
   // Refs for image and canvas elements
-  const imgRef = useRef(null); // Reference to the img DOM element
-  const canvasRef = useRef(null); // Reference to a canvas to grab image frames
-  const modelRef = useRef(null); // To store the loaded MobileNet model
-  const lastImageTimeRef = useRef(Date.now()); // To track the time of the last image classification
+  const imgRef = useRef(null);
+  const canvasRef = useRef(null);
+  const modelRef = useRef(null);
+  const lastImageTimeRef = useRef(Date.now());
 
   // WebSocket connection setup
   useEffect(() => {
@@ -306,7 +464,7 @@ const App = () => {
 
     socket.onclose = () => {
       console.log("Disconnected from WebSocket server");
-      setConnected(false);
+      setConnected(true); //ตอนรันจิงเปลี่ยนตรงนี้เป็น false ด้วย
     };
 
     return () => {
@@ -332,7 +490,7 @@ const App = () => {
 
         const analyzeFrame = async () => {
           if (imgRef.current.complete) {
-            const ctx = canvasRef.current.getContext('2d');
+            const ctx = canvasRef.current.getContext("2d");
             ctx.drawImage(imgRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
 
             // Only classify every 1 second
@@ -347,69 +505,131 @@ const App = () => {
           requestAnimationFrame(analyzeFrame); // Continue analyzing frames
         };
 
-        analyzeFrame(); // Start analyzing frames
+        analyzeFrame(); //Start analyzing frames
       });
     }
   }, []);
 
+  //จำลองการส่งค่า เซนเซ้อ เขียนไงวะ🤨
+  useEffect(() => {
+    if (connected) {
+      const interval = setInterval(() => {
+        setData({
+          soil_moisture: Math.floor(Math.random() * 100), // ตัวเลขสุ่มระหว่าง 0-100
+          water_level: Math.floor(Math.random() * 100),
+          light: Math.random() > 0.5 ? 1 : 0, // สลับระหว่าง Bright และ Dark
+          humidity: Math.floor(Math.random() * 100),
+        });
+      }, 3000);
+
+      return () => clearInterval(interval); // ล้าง interval เมื่อ component ถูก unmount
+    }
+  }, [connected]);
+
+
+
   return (
-    <div className="App">
-      <h1>ESP32 Real-Time Monitoring and MobileNet Classification</h1>
+    <div className="min-h-screen bg-gray-900 text-gray-100 font-sans">
+      <header className="bg-gray-800 shadow-lg p-4">
+        <h1 className="text-2xl font-bold text-center text-blue-400">ESP32 Real-Time Monitoring & AI Control</h1>
+      </header>
 
-      {/* WebSocket Connection Status */}
-      {connected ? (
-        <div>
-          <h2>Connected to WebSocket</h2>
-          <p>Soil Moisture: {data.soil_moisture ?? "Loading..."}</p>
-          <p>Water Level: {data.water_level ?? "Loading..."}%</p>
-          <p>Light: {data.light === 1 ? "Bright" : "Dark"}</p>
-          <p>Humidity: {data.humidity ?? "Loading..."}%</p>
-          <button onClick={() => controlMotor("MOTOR_ON")}>Turn Motor ON</button>
+      <main className="container mx-auto p-4">
+        {/* WebSocket Status */}
+        {/* ตรงนี้เเก้เยอะสุดถ้ามันพังกรุณามารับชมตรงก่อนเลอ  */}
+        <div className="grid gap-6 md:grid-cols-2 m-6">
+          <div
+            className={`p-6 rounded-lg shadow-lg ${
+              connected ? "bg-sky-900" : "bg-red-500"
+            }`}
+          >
+            <h2 className="text-xl font-bold mb-4">
+              {connected ? "Connected to WebSocket" : "Disconnected"}
+            </h2>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="font-medium">Soil Moisture</p>
+                <p className="text-2xl font-bold">
+                  {data.soil_moisture ?? "Loading..."}
+                </p>
+              </div>
+              <div>
+                <p className="font-medium">Water Level</p>
+                <p className="text-2xl font-bold">
+                  {data.water_level !== null
+                    ? `${data.water_level}%`
+                    : "Loading..."}
+                </p>
+              </div>
+              <div>
+                <p className="font-medium">Light</p>
+                <p className="text-2xl font-bold">
+                  {data.light === 1 ? "Bright" : "Dark"}
+                </p>
+              </div>
+              <div>
+                <p className="font-medium">Humidity</p>
+                <p className="text-2xl font-bold">
+                  {data.humidity !== null
+                    ? `${data.humidity}%`
+                    : "Loading..."}
+                </p>
+              </div>
+            </div>
+            <button
+              className="mt-4 bg-blue-600 hover:bg-blue-800 text-white py-2 px-4 rounded transition-transform transform hover:scale-105"
+              onClick={() => controlMotor("MOTOR_ON")}
+            >
+              Turn Motor ON
+            </button>
+          </div>
         </div>
-      ) : (
-        <p>Connecting to WebSocket...</p>
-      )}
 
-      {/* MJPEG Stream from ESP32 Camera */}
-      <img
-        ref={imgRef}
-        src="http://172.20.10.8:81/stream" // MJPEG stream URL
-        alt="Live stream"
-        width="640"
-        height="480"
-        style={{
-          border: '2px solid #ccc',
-          borderRadius: '8px',
-        }}
-        crossOrigin="anonymous" // Enable CORS
-        onLoad={() => console.log('Image loaded successfully')}
-        onError={() => console.error('Failed to load image')}
-      />
+        {/* Camera Stream */}
+        <div className="flex justify-center mb-6">
+          <img
+            ref={imgRef}
+            src="http://172.20.10.8:81/stream"
+            alt="Live stream"
+            className="border-4 border-blue-400 rounded-lg shadow-lg"
+            width="640"
+            height="480"
+          />
+        </div>
 
-      {/* Canvas to grab image data from MJPEG stream for classification */}
-      <canvas
-        ref={canvasRef}
-        width="640"
-        height="480"
-        style={{ display: 'none' }} // Hide the canvas element
-      ></canvas>
+        {/* Predictions */}
+        <div className="bg-gray-800 p-4 rounded-lg shadow-lg">
+          <h2 className="text-2xl font-bold mb-4 text-blue-300">Image Classification Predictions</h2>
+          <ul className="list-disc pl-6">
+            {predictions.length > 0 ? (
+              predictions.map((prediction, idx) => (
+              <div
+                key={idx}
+                className="bg-gray-700 p-2 rounded-lg shadow-md hover:shadow-lg hover:bg-gray-600 transition-shadow m-4"
+              >
+                <h3 className="text-xl font-semibold text-white mb-2">
+                  {prediction.className}
+                </h3>
+                <p className="text-lg text-gray-300">
+                  Confidence:{" "}
+                  <span className="font-bold text-green-400">
+                    {Math.round(prediction.probability * 100)}%
+                  </span>
+                </p>
+              </div>
+              ))
+            ) : (
+              <p>No predictions yet. Please wait...</p>
+            )}
+          </ul>
+        </div>
+      </main>
 
-      {/* Display Image Classification Results */}
-      <div>
-        <h2>Predictions:</h2>
-        <ul>
-          {predictions.map((prediction, idx) => (
-            <li key={idx}>
-              {prediction.className} - {Math.round(prediction.probability * 100)}%
-            </li>
-          ))}
-        </ul>
-      </div>
+      <footer className="bg-gray-800 text-gray-400 text-center py-4">
+        <p>© 2024 IoT Solutions Inc. All rights reserved.</p>
+      </footer>
     </div>
   );
 };
 
 export default App;
-
-
-
