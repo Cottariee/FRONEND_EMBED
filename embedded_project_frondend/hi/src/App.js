@@ -417,6 +417,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import * as mobilenet from "@tensorflow-models/mobilenet";
+import { FiAlertCircle } from "react-icons/fi";
 import "@tensorflow/tfjs";
 
 const App = () => {
@@ -434,6 +435,7 @@ const App = () => {
   const [predictions, setPredictions] = useState([
     { className: "Worm", probability: 0.9 },
     { className: "Latae", probability: 0.75 },
+    { className: "Serumnara", probability: 0.958382}
   ]); //ใส่ค่าไว้อย่าลืมเอาออกตอนใช้
 
   // Refs for image and canvas elements
@@ -534,13 +536,13 @@ const App = () => {
         <h1 className="text-2xl font-bold text-center text-blue-400">ESP32 Real-Time Monitoring & AI Control</h1>
       </header>
 
-      <main className="container mx-auto p-4">
+      <main className="container mx-auto p-4 grid grid-cols-2">
         {/* WebSocket Status */}
         {/* ตรงนี้เเก้เยอะสุดถ้ามันพังกรุณามารับชมตรงก่อนเลอ  */}
-        <div className="grid gap-6 md:grid-cols-2 m-6">
+        <div className="grid gap-1 m-6 ">
           <div
             className={`p-6 rounded-lg shadow-lg ${
-              connected ? "bg-sky-900" : "bg-red-500"
+              connected ? "bg-sky-900 h-72" : "bg-red-500 h-72"
             }`}
           >
             <h2 className="text-xl font-bold mb-4">
@@ -583,9 +585,46 @@ const App = () => {
               Turn Motor ON
             </button>
           </div>
+          {/* <div className="p-6 rounded-lg shadow-lg bg-sky-900 h-72 place-content-center">
+          {connected ? (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="font-medium">Soil Moisture</p>
+                <p className="text-2xl font-bold">
+                  {data.soil_moisture ?? "Loading..."}
+                </p>
+              </div>
+              <div>
+                <p className="font-medium">Water Level</p>
+                <p className="text-2xl font-bold">
+                  {data.water_level !== null
+                    ? `${data.water_level}%`
+                    : "Loading..."}
+                </p>
+              </div>
+              <div>
+                <p className="font-medium">Light</p>
+                <p className="text-2xl font-bold">
+                  {data.light === 1 ? "Bright" : "Dark"}
+                </p>
+              </div>
+              <div>
+                <p className="font-medium">Humidity</p>
+                <p className="text-2xl font-bold">
+                  {data.humidity !== null
+                    ? `${data.humidity}%`
+                    : "Loading..."}
+                </p>
+              </div>
+            </div>
+          ) : (
+              <FiAlertCircle className="ml-60 text-red-500 w-10 h-10" />
+          )}
+          </div> */}
         </div>
 
         {/* Camera Stream */}
+        <div>
         <div className="flex justify-center mb-6">
           <img
             ref={imgRef}
@@ -593,19 +632,19 @@ const App = () => {
             alt="Live stream"
             className="border-4 border-blue-400 rounded-lg shadow-lg"
             width="640"
-            height="480"
+            height="400"
           />
         </div>
 
         {/* Predictions */}
         <div className="bg-gray-800 p-4 rounded-lg shadow-lg">
           <h2 className="text-2xl font-bold mb-4 text-blue-300">Image Classification Predictions</h2>
-          <ul className="list-disc pl-6">
+          <ul className="list-disc grid grid-cols-2">
             {predictions.length > 0 ? (
               predictions.map((prediction, idx) => (
               <div
                 key={idx}
-                className="bg-gray-700 p-2 rounded-lg shadow-md hover:shadow-lg hover:bg-gray-600 transition-shadow m-4"
+                className=" bg-gray-700 p-2 rounded-lg shadow-md hover:shadow-lg hover:bg-gray-600 transition-shadow m-4 "
               >
                 <h3 className="text-xl font-semibold text-white mb-2">
                   {prediction.className}
@@ -622,6 +661,7 @@ const App = () => {
               <p>No predictions yet. Please wait...</p>
             )}
           </ul>
+        </div>
         </div>
       </main>
 
